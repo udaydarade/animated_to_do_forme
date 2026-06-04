@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Dashboard | Focus Network</title>
+    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@400;600&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #08080c;
+            --panel: rgba(15, 15, 25, 0.75);
+            --border: rgba(138, 43, 226, 0.3);
+            --accent: #8a2be2;
+            --accent-glow: rgba(138, 43, 226, 0.4);
+            --text: #f3f3f6;
+            --muted: #7e7e8c;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Poppins', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            opacity: 0.6;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 25px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* --- SIDEBAR PANEL --- */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--panel);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .panel:hover {
+            border-color: var(--accent);
+            box-shadow: 0 8px 32px var(--accent-glow);
+        }
+
+        .profile-section {
+            text-align: center;
+            position: relative;
+        }
+
+        .char-container {
+            height: 160px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+
+        .char-img {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 0 8px var(--accent));
+            animation: float 4s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .rank-title {
+            font-family: 'Teko', sans-serif;
+            font-size: 2rem;
+            letter-spacing: 1px;
+            color: var(--accent);
+            text-transform: uppercase;
+            line-height: 1;
+        }
+
+        /* --- STATS TRACKER --- */
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 12px 0;
+            font-size: 0.95rem;
+        }
+        .stat-val { font-weight: 600; color: var(--accent); }
+        
+        .progress-bar-container {
+            background: rgba(250,250,250,0.05);
+            border-radius: 6px;
+            height: 8px;
+            width: 100%;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        .progress-bar {
+            background: var(--accent);
+            height: 100%;
+            width: 0%;
+            transition: width 0.4s ease;
+            box-shadow: 0 0 8px var(--accent);
+        }
+
+        /* --- THEME SELECTOR --- */
+        label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            color: var(--muted);
+            letter-spacing: 1px;
+            display: block;
+            margin-bottom: 5px;
+        }
+        select, .btn-secondary {
+            width: 100%;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid #333;
+            color: white;
+            padding: 10px;
+            border-radius: 6px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        select:focus, .btn-secondary:hover {
+            border-color: var(--accent);
+            outline: none;
+        }
+
+        /* --- MAIN CONTENT AREA --- */
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            font-family: 'Teko', sans-serif;
+            font-size: 3.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: linear-gradient(90deg, var(--text), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .quote-box {
+            font-style: italic;
+            color: var(--muted);
+            font-size: 0.95rem;
+            border-left: 3px solid var(--accent);
+            padding-left: 10px;
+            min-height: 24px;
+        }
+
+        h2 {
+            font-family: 'Teko', sans-serif;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(0,0,0,0.6);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 8px;
+            font-family: 'Teko', sans-serif;
+            font-size: 1.4rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        /* --- LIST ITEMS --- */
+        ul { list-style: none; }
+        li {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.05);
+            border-left: 4px solid var(--accent);
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.95rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        li.completed {
+            border-left-color: var(--muted);
+            opacity: 0.5;
+        }
+        li.completed span { text-decoration: line-through; color: var(--muted); }
+
+        .list-actions { display: flex; gap: 8px; }
+        .btn-action {
+            background: transparent;
+            border: 1px solid #444;
+            color: var(--text);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-action.complete-btn:hover { border-color: #00ff88; color: #00ff88; }
+        .btn-action.delete-btn:hover { border-color: #ff3366; color: #ff3366; }
+
+        .json-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+
+        @media (max-width: 768px) {
+            .dashboard { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <div class="dashboard">
+        <!-- LEFT PANEL: STATS & CONFIG -->
+        <div class="sidebar">
+            <div class="panel profile-section">
+                <div class="char-container">
+                    <img id="avatar" class="char-img" src="" alt="Character Profile">
+                </div>
+                <div id="rank-display" class="rank-title">Loading...</div>
+            </div>
+
+            <div class="panel">
+                <h2>System Analytics</h2>
+                <div class="stat-row">
+                    <span>Power Output (EXP)</span>
+                    <span id="exp-display" class="stat-val">0</span>
+                </div>
+                <div class="stat-row">
+                    <span>Exorcisms (Tasks)</span>
+                    <span id="task-count" class="stat-val">0/0</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div id="exp-bar" class="progress-bar"></div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <label for="theme-select">Select Alignment</label>
+                <select id="theme-select" onchange="changeTheme(this.value)">
+                    <option value="jjk">Jujutsu Kaisen</option>
+                    <option value="ghoul">Tokyo Ghoul</option>
+                    <option value="frieren">Frieren</option>
+                </select>
+
+                <label style="margin-top:15px;">Data Synchronization</label>
+                <div class="json-controls">
+                    <button class="btn-secondary" onclick="exportData()" style="font-size:0.85rem;">Export JSON</button>
+                    <button class="btn-secondary" onclick="importData()" style="font-size:0.85rem;">Import JSON</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: CONTENT MANAGEMENT -->
+        <div class="main-content">
+            <div class="content-header">
+                <h1 id="main-title">Domain Central</h1>
+                <div id="quote-display" class="quote-box">"Concentrate your energy."</div>
+            </div>
+
+            <!-- Goals Panel -->
+            <div class="panel">
+                <h2>Strategic Goals</h2>
+                <div class="input-wrapper">
+                    <input type="text" id="goal-input" placeholder="Define an overarching milestone...">
+                    <button class="btn-primary" onclick="addGoal()">Establish</button>
+                </div>
+                <ul id="goal-list"></ul>
+            </div>
+
+            <!-- Tasks Panel -->
+            <div class="panel">
+                <h2>Tactical Tasks</h2>
+                <div class="input-wrapper">
+                    <input type="text" id="task-input" placeholder="Execute modern operations...">
+                    <button class="btn-primary" onclick="addTask()">Deploy</button>
+                </div>
+                <ul id="task-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ARCHITECTURE ---
+        let state = {
+            theme: 'jjk',
+            exp: 0,
+            tasks: [],
+            goals: []
+        };
+
+        // --- THEME DEFINITIONS ---
+        const themes = {
+            jjk: {
+                primary: '#8a2be2', glow: 'rgba(138, 43, 226, 0.4)', bg: '#050508', text: 'Jujutsu Tasker',
+                avatar: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMmszdXZwYWZ6MmlyczRwaHphdzEycW13b3FrcTFwNmU3ZjhndHh5NyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/DGsDLr9nyz2LkVgKFs/giphy.gif',
+                ranks: ['Grade 4 Sorcerer', 'Grade 2 Sorcerer', 'Semi-Grade 1', 'Grade 1 Sorcerer', 'Special Grade'],
+                quotes: ["Stand proud. You are strong.", "Domain Expansion: Infinite Productivity.", "Throughout heaven and earth, I alone am the honored one."]
+            },
+            ghoul: {
+                primary: '#ff003c', glow: 'rgba(255, 0, 60, 0.4)', bg: '#0b0204', text: 'Anteiku Core',
+                avatar: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNndhNWpwa2YyZXh2bGR2Mnk3NHlzbnIydXF0NGRpZWJmdzlsbDQxMCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/fX8B6HC3C0leQmR6Sg/giphy.gif',
+                ranks: ['Ghoul Rank C', 'Ghoul Rank B', 'Ghoul Rank A', 'S-Rate Ghoul', 'SSSS-Rate Owl'],
+                quotes: ["What's 1000 minus 7?", "I am a ghoul.", "All suffering in this world is born from an individual's lack of ability."]
+            },
+            frieren: {
+                primary: '#00ced1', glow: 'rgba(0, 206, 209, 0.4)', bg: '#080f12', text: 'Mage Journey',
+                avatar: 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNGh0azdrNjVwOXgxbzFmOHVndmZlbmd5cjR0NWg2ZHNpd3N4eDk1eiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/y8GgA7ZonCHXQCc7fS/giphy.gif',
+                ranks: ['Apprentice Mage', 'Third-Class Mage', 'Second-Class Mage', 'First-Class Mage', 'Great Mage'],
+                quotes: ["It's the small, pointless things that matter most.", "We are talking about magic here.", "The journey itself is what held the magic."]
+            }
+        };
+
+        // --- BACKGROUND GRAPHICS ENGINE ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height + 20;
+                this.size = Math.random() * 4 + 1;
+                this.speedY = Math.random() * -2 - 0.5;
+                this.speedX = Math.random() * 1 - 0.5;
+            }
+            update() {
+                this.y += this.speedY;
+                this.x += this.speedX;
+                if (this.size > 0.1) this.size -= 0.01;
+            }
+            draw() {
+                ctx.fillStyle = themes[state.theme].primary + '66';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() { for(let i=0; i<60; i++) particles.push(new Particle()); }
+        function animate() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            particles.forEach((p, idx) => {
+                p.update(); p.draw();
+                if(p.size <= 0.1 || p.y < 0) { particles[idx] = new Particle(); }
+            });
+            requestAnimationFrame(animate);
+        }
+        initParticles(); animate();
+
+        // --- CONTROLLERS ---
+        function loadState() {
+            const raw = localStorage.getItem('anime_dashboard_state');
+            if (raw) {
+                state = JSON.parse(raw);
+            }
+            document.getElementById('theme-select').value = state.theme;
+            applyThemeStyles();
+            render();
+        }
+
+        function saveState() {
+            localStorage.setItem('anime_dashboard_state', JSON.stringify(state));
+        }
+
+        function changeTheme(themeKey) {
+            state.theme = themeKey;
+            applyThemeStyles();
+            saveState();
+            render();
+        }
+
+        function applyThemeStyles() {
+            const t = themes[state.theme];
+            document.documentElement.style.setProperty('--accent', t.primary);
+            document.documentElement.style.setProperty('--accent-glow', t.glow);
+            document.documentElement.style.setProperty('--bg', t.bg);
+            document.getElementById('main-title').innerText = t.text;
+            document.getElementById('avatar').src = t.avatar;
+        }
+
+        function calculateMetrics() {
+            // Formula: 10 EXP per task, 50 EXP per goal
+            const taskExp = state.tasks.filter(t => t.completed).length * 10;
+            const goalExp = state.goals.filter(g => g.completed).length * 50;
+            state.exp = taskExp + goalExp;
+
+            // Determine Rank Title
+            const rankIndex = Math.min(Math.floor(state.exp / 100), themes[state.theme].ranks.length - 1);
+            document.getElementById('rank-display').innerText = themes[state.theme].ranks[rankIndex];
+            document.getElementById('exp-display').innerText = state.exp;
+
+            // Calculate progress bar relative to next rank cap (each rank 100 EXP)
+            const progressPercentage = (state.exp % 100);
+            document.getElementById('exp-bar').style.width = `${progressPercentage}%`;
+
+            const completedTasks = state.tasks.filter(t => t.completed).length;
+            document.getElementById('task-count').innerText = `${completedTasks}/${state.tasks.length}`;
+        }
+
+        function render() {
+            calculateMetrics();
+            
+            // Build Goals
+            const gList = document.getElementById('goal-list');
+            gList.innerHTML = '';
+            state.goals.forEach((g, idx) => {
+                const li = document.createElement('li');
+                if(g.completed) li.className = 'completed';
+                li.innerHTML = `
+                    <span>${g.text}</span>
+                    <div class="list-actions">
+                        <button class="btn-action complete-btn" onclick="toggleItem('goals', ${idx})">✓</button>
+                        <button class="btn-action delete-btn" onclick="deleteItem('goals', ${idx})">✖</button>
+                    </div>
+                `;
+                gList.appendChild(li);
+            });
+
+            // Build Tasks
+            const tList = document.getElementById('task-list');
+            tList.innerHTML = '';
+            state.tasks.forEach((t, idx) => {
+                const li = document.createElement('li');
+                if(t.completed) li.className = 'completed';
+                li.innerHTML = `
+                    <span>${t.text}</span>
+                    <div class="list-actions">
+                        <button class="btn-action complete-btn" onclick="toggleItem('tasks', ${idx})">✓</button>
+                        <button class="btn-action delete-btn" onclick="deleteItem('tasks', ${idx})">✖</button>
+                    </div>
+                `;
+                tList.appendChild(li);
+            });
+        }
+
+        // --- ACTIONS ---
+        function addGoal() {
+            const el = document.getElementById('goal-input');
+            if(el.value.trim()) {
+                state.goals.push({text: el.value.trim(), completed: false});
+                el.value = ''; saveState(); render();
+            }
+        }
+
+        function addTask() {
+            const el = document.getElementById('task-input');
+            if(el.value.trim()) {
+                state.tasks.push({text: el.value.trim(), completed: false});
+                el.value = ''; saveState(); render();
+            }
+        }
+
+        function toggleItem(type, idx) {
+            state[type][idx].completed = !state[type][idx].completed;
+            if(state[type][idx].completed) {
+                const quotesPool = themes[state.theme].quotes;
+                document.getElementById('quote-display').innerText = `"${quotesPool[Math.floor(Math.random() * quotesPool.length)]}"`;
+            }
+            saveState(); render();
+        }
+
+        function deleteItem(type, idx) {
+            state[type].splice(idx, 1);
+            saveState(); render();
+        }
+
+        // --- JSON BACKUP MANAGEMENT ---
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `anime_dashboard_backup.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importData() {
+            const jsonInput = prompt("Paste your exported JSON string here:");
+            if (jsonInput) {
+                try {
+                    const parsed = JSON.parse(jsonInput);
+                    if(parsed.theme && parsed.tasks && parsed.goals) {
+                        state = parsed;
+                        saveState();
+                        applyThemeStyles();
+                        render();
+                        alert("Data successfully imported!");
+                    } else {
+                        alert("Invalid format structure.");
+                    }
+                } catch(e) {
+                    alert("Failed to parse JSON. Ensure the copied string is perfect.");
+                }
+            }
+        }
+
+        // Shortcuts
+        document.getElementById('task-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') addTask(); });
+        document.getElementById('goal-input').addEventListener('keypress', (e) => { if(e.key === 'Enter') addGoal(); });
+
+        // Initialize App
+        loadState();
+    </script>
+</body>
+</html>
