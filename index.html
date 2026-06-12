@@ -1,407 +1,1469 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Forest — Minimalist Tree Tasks</title>
-    <style>
-        :root {
-            --bg-color: #fafafa;
-            --text-color: #171717;
-            --border-color: #e5e5e5;
-            --accent-color: #737373;
-            --hover-color: #f5f5f5;
-            --completed-color: #a3a3a3;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌳 The Forest — Task Trees (Improved)</title>
+<style>
+  :root {
+    --bg: #05091a;
+    --surface: rgba(10, 18, 42, 0.88);
+    --surface-2: rgba(8, 14, 30, 0.92);
+    --border: rgba(255,255,255,0.08);
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
+    --nl-bg: #090f1e;
+    --nl-br: #1a2540;
+    --na-bg: #071c3a;
+    --na-br: #1d4ed8;
+    --nd-bg: #031a0b;
+    --nd-br: #15803d;
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            padding: 4rem 2rem;
-            display: flex;
-            justify-content: center;
-        }
+    --t-dim: #2d4060;
+    --t-soft: #7d93b4;
+    --t-main: #c4d0e3;
+    --t-hi: #eef2f8;
 
-        .container {
-            width: 100%;
-            max-width: 650px;
-        }
+    --green: #22c55e;
+    --blue: #3b82f6;
+    --gold: #f59e0b;
+    --red: #f87171;
 
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 3rem;
-        }
+    --glow-g: 0 0 20px rgba(34,197,94,.34);
+    --glow-b: 0 0 20px rgba(59,130,246,.34);
+  }
 
-        h1 {
-            font-size: 1.25rem;
-            font-weight: 500;
-            letter-spacing: -0.02em;
-        }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
 
-        .actions {
-            display: flex;
-            gap: 0.75rem;
-        }
+  body {
+    min-height: 100vh;
+    overflow-x: auto;
+    overflow-y: auto;
+    background: radial-gradient(circle at top, #0b1530 0%, var(--bg) 48%, #04070f 100%);
+    color: var(--t-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
 
-        button, label.btn-label {
-            background: none;
-            border: 1px solid var(--border-color);
-            padding: 0.4rem 0.75rem;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            color: var(--accent-color);
-            cursor: pointer;
-            transition: all 0.15s ease;
-            display: inline-block;
-        }
+  #bgCanvas {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
 
-        button:hover, label.btn-label:hover {
-            background-color: var(--hover-color);
-            color: var(--text-color);
-            border-color: var(--accent-color);
-        }
+  .app {
+    position: relative;
+    z-index: 1;
+    padding: 1.5rem 2rem 6rem;
+  }
 
-        .btn-primary {
-            background-color: var(--text-color);
-            color: var(--bg-color);
-            border-color: var(--text-color);
-        }
+  header {
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo {
+    display:flex;
+    align-items:baseline;
+    gap:.5rem;
+    color: var(--t-hi);
+    font-size:1.15rem;
+    font-weight:800;
+    letter-spacing:-0.03em;
+  }
+  .logo-sub {
+    color: var(--t-soft);
+    font-size:.72rem;
+    font-weight:500;
+    letter-spacing:.12em;
+  }
+  .hdr-btns {
+    display:flex;
+    align-items:center;
+    gap:.45rem;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
 
-        .btn-primary:hover {
-            background-color: var(--accent-color);
-            color: var(--bg-color);
-            border-color: var(--accent-color);
-        }
+  .btn {
+    display:inline-flex;
+    align-items:center;
+    gap:.35rem;
+    background: rgba(255,255,255,.03);
+    border: 1px solid var(--border);
+    padding: .45rem .9rem;
+    border-radius: 10px;
+    font-size: .8rem;
+    font-family: inherit;
+    color: var(--t-soft);
+    cursor: pointer;
+    transition: transform .15s, background .18s, border-color .18s, color .18s;
+    text-decoration:none;
+    white-space:nowrap;
+    position: relative;
+    overflow:hidden;
+  }
+  .btn:hover {
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.15);
+    color: var(--t-hi);
+    transform: translateY(-1px);
+  }
+  .btn:active { transform: translateY(0); }
+  .btn::after {
+    content:'';
+    position:absolute; inset:0;
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.14), transparent 70%);
+    opacity:0;
+    transition: opacity .25s;
+  }
+  .btn:active::after { opacity:1; }
+  .btn-g {
+    background: rgba(34,197,94,.12);
+    border-color: rgba(34,197,94,.32);
+    color: #89f0a8;
+  }
+  .btn-g:hover {
+    background: rgba(34,197,94,.18);
+    border-color: var(--green);
+  }
+  .btn-sm {
+    padding: .28rem .55rem;
+    font-size: .72rem;
+    border-radius: 8px;
+  }
 
-        #file-import {
-            display: none;
-        }
+  .dashboard {
+    display:flex;
+    align-items:center;
+    gap: 1.4rem;
+    flex-wrap:wrap;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.7rem;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+  }
+  .ds {
+    display:flex;
+    flex-direction:column;
+    gap:.12rem;
+    min-width: 72px;
+  }
+  .ds-l {
+    font-size:.65rem;
+    font-weight:700;
+    color: var(--t-dim);
+    text-transform:uppercase;
+    letter-spacing:.12em;
+  }
+  .ds-v {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--t-hi);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .ds-prog {
+    flex:1;
+    min-width: 220px;
+    display:flex;
+    flex-direction:column;
+    gap:.45rem;
+  }
+  .ds-rank { font-size:.84rem; color: var(--t-soft); }
+  .pbar {
+    height: 8px;
+    background: rgba(255,255,255,.05);
+    border-radius: 99px;
+    overflow:hidden;
+  }
+  .pbar-fill {
+    height:100%;
+    background: linear-gradient(90deg, #2563eb 0%, #22c55e 100%);
+    border-radius: 99px;
+    position: relative;
+    overflow:hidden;
+    transition: width .75s cubic-bezier(.4,0,.2,1);
+  }
+  .pbar-fill::after {
+    content:'';
+    position:absolute;
+    inset:0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.25), transparent);
+    animation: shimmer 2.2s linear infinite;
+  }
+  @keyframes shimmer {
+    from { transform: translateX(-200%); }
+    to { transform: translateX(200%); }
+  }
 
-        .forest-floor {
-            margin-top: 1rem;
-        }
+  #forest {
+    display:flex;
+    flex-wrap:wrap;
+    gap: 1.5rem;
+    align-items:flex-start;
+    padding-bottom: 1rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  .empty-forest {
+    width:100%;
+    text-align:center;
+    padding: 5rem 2rem;
+    border: 1px dashed rgba(255,255,255,.08);
+    border-radius: 22px;
+    color: var(--t-dim);
+    background: rgba(255,255,255,.015);
+    line-height: 2.1;
+    animation: fadeIn .35s ease;
+  }
+  .ef-icon { font-size: 2.8rem; display:block; margin-bottom:.5rem; }
+  .ef-title { color: var(--t-soft); font-size: 1rem; }
+  .ef-hint { font-size:.8rem; }
 
-        .tree-node {
-            margin-top: 0.5rem;
-        }
+  .tree-card {
+    position:relative;
+    flex-shrink:0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    max-width: min(100%, calc(100vw - 4rem));
+    border-radius: 22px;
+    padding: 1rem 1rem 1.15rem;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    animation: cardIn .36s cubic-bezier(.34,1.56,.64,1) both;
+    transition: box-shadow .25s, transform .2s;
+  }
+  .tree-card:hover {
+    box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 14px 45px rgba(0,0,0,.45);
+    transform: translateY(-1px);
+  }
+  @keyframes cardIn {
+    from { opacity:0; transform: translateY(16px) scale(.97); }
+    to { opacity:1; transform: translateY(0) scale(1); }
+  }
 
-        .node-row {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.25rem 0;
-            group: hover;
-        }
+  .tree-head {
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap: 1rem;
+    margin-bottom: .9rem;
+  }
+  .tree-title {
+    font-size: .95rem;
+    color: var(--t-hi);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    line-height: 1.2;
+  }
+  .tree-sub {
+    margin-top: .25rem;
+    color: var(--t-soft);
+    font-size: .76rem;
+  }
+  .tree-head-actions {
+    display:flex;
+    gap:.35rem;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
 
-        .checkbox-wrapper {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-        }
+  .tree-graph {
+    position:relative;
+    margin-top:.25rem;
+  }
+  .tree-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: .65rem;
+    scrollbar-gutter: stable both-edges;
+  }
+  .tree-svg {
+    position:absolute;
+    top:0; left:0;
+    pointer-events:none;
+    overflow:visible;
+  }
+  .edge-path {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: drawEdge .6s ease forwards;
+  }
+  @keyframes drawEdge { to { stroke-dashoffset: 0; } }
 
-        .node-checkbox {
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border: 1px solid var(--accent-color);
-            border-radius: 4px;
-            cursor: pointer;
-            display: grid;
-            place-content: center;
-            transition: all 0.15s ease;
-        }
+  .node {
+    position:absolute;
+    width: 260px;
+    min-height: 108px;
+    padding: .85rem .95rem .8rem;
+    border-radius: 18px;
+    border: 1.5px solid;
+    display:flex;
+    flex-direction:column;
+    gap: .45rem;
+    text-align:left;
+    transform: translate(-50%, 0);
+    transition:
+      transform .2s cubic-bezier(.34,1.56,.64,1),
+      box-shadow .25s ease,
+      background .25s,
+      border-color .25s,
+      opacity .25s;
+    user-select:none;
+    cursor:pointer;
+  }
 
-        .node-checkbox:checked {
-            background-color: var(--accent-color);
-            border-color: var(--accent-color);
-        }
+  .node.locked {
+    background: var(--nl-bg);
+    border-color: var(--nl-br);
+    color: var(--t-dim);
+    cursor: default;
+  }
+  .node.active {
+    background: linear-gradient(180deg, rgba(7,28,58,.96), rgba(7,20,42,.94));
+    border-color: var(--na-br);
+    color: var(--t-hi);
+    box-shadow: var(--glow-b), inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .node.active:hover {
+    transform: translate(-50%, -3px);
+    box-shadow: 0 0 34px rgba(59,130,246,.42), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  .node.blocked {
+    border-color: rgba(245,158,11,.42);
+  }
+  .node.blocked .node-badge {
+    border-color: rgba(245,158,11,.28);
+    color: #f4d39a;
+    background: rgba(245,158,11,.08);
+  }
+  .node.done {
+    background: linear-gradient(180deg, rgba(3,26,11,.96), rgba(5,18,10,.94));
+    border-color: var(--nd-br);
+    color: var(--t-soft);
+    box-shadow: var(--glow-g), inset 0 1px 0 rgba(34,197,94,.06);
+  }
+  .node.done:hover {
+    transform: translate(-50%, -2px);
+    box-shadow: 0 0 30px rgba(34,197,94,.36);
+  }
 
-        .node-checkbox:checked::before {
-            content: "";
-            width: 8px;
-            height: 4px;
-            border-left: 2px solid var(--bg-color);
-            border-bottom: 2px solid var(--bg-color);
-            transform: rotate(-45deg) translate(1px, -1px);
-        }
+  .node-top {
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:.8rem;
+  }
+  .node-badge {
+    display:inline-flex;
+    align-items:center;
+    gap:.35rem;
+    padding:.22rem .5rem;
+    border-radius: 999px;
+    font-size: .67rem;
+    letter-spacing:.08em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,.08);
+    color: var(--t-soft);
+    background: rgba(255,255,255,.03);
+    white-space:nowrap;
+  }
+  .node.active .node-badge { color: #91b8ff; border-color: rgba(59,130,246,.28); }
+  .node.waiting .node-badge { color: #f7c66f; border-color: rgba(245,158,11,.28); }
+  .node.done .node-badge { color: #9ef0bb; border-color: rgba(34,197,94,.24); }
+  .node.locked .node-badge { color: #6d7f9d; }
 
-        .node-input {
-            border: none;
-            background: transparent;
-            font-size: 0.95rem;
-            color: var(--text-color);
-            width: 100%;
-            padding: 0.2rem 0.4rem;
-            border-radius: 4px;
-        }
+  .node-icon {
+    font-size: .95rem;
+    line-height: 1;
+    flex: 0 0 auto;
+  }
+  .node-lbl {
+    font-size: .96rem;
+    line-height: 1.42;
+    color: inherit;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow:hidden;
+    overflow-wrap:anywhere;
+    min-height: 4.2em;
+  }
+  .node.done .node-lbl {
+    text-decoration: line-through;
+    opacity:.62;
+  }
+  .node.locked .node-lbl {
+    opacity:.5;
+  }
+  .node.active .node-lbl[data-empty="1"] {
+    opacity:.42;
+    font-style: italic;
+  }
+  .node.waiting .node-lbl[data-empty="1"] {
+    opacity:.8;
+    font-style: normal;
+  }
+  .node.waiting .node-lbl {
+    color: #f4d39a;
+  }
 
-        .node-input:focus {
-            outline: none;
-            background-color: var(--hover-color);
-        }
+  .node-footer {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:.5rem;
+    margin-top:auto;
+  }
+  .node-meta {
+    font-size: .7rem;
+    color: var(--t-dim);
+    white-space:nowrap;
+  }
+  .node-acts {
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    gap:.28rem;
+    flex-wrap:wrap;
+  }
+  .nab {
+    font-size:.69rem;
+    padding:.2rem .46rem;
+    border-radius:8px;
+    background:#0a1428;
+    border:1px solid rgba(255,255,255,.1);
+    color: var(--t-soft);
+    cursor:pointer;
+    transition: background .15s, color .15s, border-color .15s;
+    white-space:nowrap;
+  }
+  .nab:hover { background: rgba(255,255,255,.08); color: var(--t-hi); }
+  .nab.add { color: #8df0a9; border-color: rgba(34,197,94,.26); }
+  .nab.add:hover { background: rgba(34,197,94,.1); }
+  .nab.del { color: #fca5a5; border-color: rgba(248,113,113,.26); }
+  .nab.del:hover { background: rgba(248,113,113,.1); }
+  .nab.edt { color: #93c5fd; border-color: rgba(59,130,246,.26); }
+  .nab.edt:hover { background: rgba(59,130,246,.1); }
+  .nab.primary {
+    padding:.33rem .56rem;
+    background: rgba(34,197,94,.11);
+    border-color: rgba(34,197,94,.3);
+    color: #8df0a9;
+  }
 
-        .node-input.completed {
-            color: var(--completed-color);
-            text-decoration: line-through;
-        }
+  .node.locked .node-acts { display:none; }
 
-        .node-tools {
-            opacity: 0;
-            display: flex;
-            gap: 0.25rem;
-            transition: opacity 0.15s ease;
-        }
+  @keyframes lockPulse {
+    0%,100% { opacity:.35; transform: scale(1); }
+    50% { opacity:.75; transform: scale(1.18); }
+  }
+  .node.locked .node-icon { animation: lockPulse 2.8s ease-in-out infinite; }
 
-        .node-row:hover .node-tools {
-            opacity: 1;
-        }
+  @keyframes unlockBurst {
+    0% { transform: translate(-50%,0) scale(.62); opacity:0; }
+    60% { transform: translate(-50%,-6px) scale(1.06); opacity:1; }
+    100% { transform: translate(-50%,0) scale(1); }
+  }
+  .node.unlocking { animation: unlockBurst .55s cubic-bezier(.34,1.56,.64,1) both; }
 
-        .tool-btn {
-            border: none;
-            background: none;
-            padding: 0.2rem 0.4rem;
-            font-size: 0.8rem;
-            border-radius: 4px;
-        }
+  @keyframes nodeSpawn {
+    from { opacity:0; transform: translate(-50%,0) scale(.6) rotate(-4deg); }
+    to { opacity:1; transform: translate(-50%,0) scale(1) rotate(0deg); }
+  }
+  .node.spawning { animation: nodeSpawn .42s cubic-bezier(.34,1.56,.64,1) both; }
 
-        .branches {
-            margin-left: 1.1rem;
-            border-left: 1px solid var(--border-color);
-            padding-left: 0.75rem;
-        }
+  @keyframes doneRing {
+    0% { box-shadow: var(--glow-g), 0 0 0 0 rgba(34,197,94,.55); }
+    70% { box-shadow: var(--glow-g), 0 0 0 16px rgba(34,197,94,0); }
+    100% { box-shadow: var(--glow-g); }
+  }
+  .node.done-ring { animation: doneRing .65s ease-out; }
 
-        .empty-state {
-            color: var(--completed-color);
-            font-size: 0.9rem;
-            text-align: center;
-            padding: 3rem 0;
-        }
-    </style>
+  @keyframes shake {
+    0%,100% { transform: translate(-50%,0); }
+    20% { transform: translate(calc(-50% - 8px),0); }
+    40% { transform: translate(calc(-50% + 8px),0); }
+    60% { transform: translate(calc(-50% - 5px),0); }
+    80% { transform: translate(calc(-50% + 5px),0); }
+  }
+
+  #particles {
+    position:fixed; inset:0;
+    pointer-events:none;
+    z-index:1000;
+  }
+  .particle {
+    position:absolute;
+    pointer-events:none;
+    animation: pfly var(--dur,.8s) ease-out forwards;
+  }
+  @keyframes pfly {
+    0% { opacity:1; transform: translate(0,0) scale(1) rotate(0deg); }
+    100% { opacity:0; transform: translate(var(--dx),var(--dy)) scale(.15) rotate(var(--dr)); }
+  }
+
+  .overlay {
+    position:fixed; inset:0;
+    background: rgba(0,0,0,.62);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index:500;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    animation: fadeIn .18s ease;
+    padding: 1rem;
+  }
+  .modal {
+    width: min(520px, calc(100vw - 2rem));
+    background: #0b1730;
+    border: 1px solid var(--na-br);
+    border-radius: 18px;
+    padding: 1.2rem;
+    box-shadow: 0 24px 70px rgba(0,0,0,.55);
+    animation: modalIn .25s cubic-bezier(.34,1.56,.64,1) both;
+  }
+  .modal h3 {
+    color: var(--t-hi);
+    font-size: .98rem;
+    margin-bottom: .7rem;
+  }
+  .modal-inp {
+    width:100%;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--na-br);
+    border-radius: 12px;
+    color: var(--t-hi);
+    padding: .8rem .85rem;
+    font-size: .95rem;
+    font-family: inherit;
+    outline:none;
+    transition: box-shadow .2s, border-color .2s;
+  }
+  .modal-inp:focus {
+    border-color: rgba(59,130,246,.85);
+    box-shadow: 0 0 0 2px rgba(59,130,246,.28);
+  }
+  .modal-hint {
+    font-size:.76rem;
+    color: var(--t-dim);
+    margin-top:.45rem;
+  }
+  .modal-acts {
+    display:flex;
+    gap:.45rem;
+    justify-content:flex-end;
+    margin-top:.95rem;
+  }
+
+  .milestone-ov {
+    position:fixed; inset:0;
+    background: rgba(0,0,0,.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index:600;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    animation: fadeIn .22s ease;
+    cursor:pointer;
+    padding: 1rem;
+  }
+  .milestone-box {
+    text-align:center;
+    animation: modalIn .5s cubic-bezier(.34,1.56,.64,1) both;
+    pointer-events:none;
+    max-width: 520px;
+  }
+  .ms-emoji { font-size: 5rem; display:block; margin-bottom:.7rem; }
+  .ms-title { font-size: 2rem; font-weight: 900; color: var(--t-hi); }
+  .ms-sub { color: var(--t-soft); margin-top:.45rem; font-size:.92rem; }
+  .ms-hint { color: var(--t-dim); margin-top:1rem; font-size:.76rem; }
+
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+  @keyframes modalIn {
+    from { opacity:0; transform: scale(.84) translateY(12px); }
+    to { opacity:1; transform: scale(1) translateY(0); }
+  }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 999px; }
+
+  .kbd-hint {
+    position:fixed;
+    bottom:1.5rem;
+    right:1.5rem;
+    font-size:.72rem;
+    color: var(--t-dim);
+    text-align:right;
+    line-height:1.7;
+    z-index:2;
+  }
+  .kbd {
+    display:inline-block;
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 5px;
+    padding: .06rem .34rem;
+    font-family: monospace;
+    font-size:.68rem;
+    color: var(--t-soft);
+  }
+
+  @media (max-width: 760px) {
+    .app { padding: 1rem 1rem 5rem; }
+    .logo-sub { display:none; }
+    .dashboard { gap:1rem; }
+    .node { width: 235px; min-height: 104px; }
+  }
+
+  @media (max-width: 520px) {
+    .hdr-btns { justify-content:flex-start; }
+    .tree-head { flex-direction:column; }
+    .tree-head-actions { justify-content:flex-start; }
+    .node { width: 220px; }
+    .kbd-hint { display:none; }
+  }
+</style>
 </head>
 <body>
+<canvas id="bgCanvas"></canvas>
 
-    <div class="container">
-        <header>
-            <h1>The Forest</h1>
-            <div class="actions">
-                <button onclick="exportJSON()">Export</button>
-                <label for="file-import" class="btn-label">Import</label>
-                <input type="file" id="file-import" accept=".json" onchange="importJSON(event)">
-                <button onclick="addTree()" class="btn-primary">+ Plant Tree</button>
-            </div>
-        </header>
-
-        <div id="forest" class="forest-floor"></div>
+<div class="app">
+  <header>
+    <div class="logo">
+      🌳 The Forest
+      <span class="logo-sub">TASK TREES</span>
     </div>
+    <div class="hdr-btns">
+      <button class="btn" id="btnUndo" title="Undo last action">↩ Undo</button>
+      <button class="btn" id="btnExport" title="Download a JSON backup">⬇ Export</button>
+      <label class="btn" for="fileImp" title="Load a saved JSON backup">⬆ Import</label>
+      <input type="file" id="fileImp" accept=".json" style="display:none">
+      <button class="btn btn-g" id="btnAdd">+ Plant Tree</button>
+    </div>
+  </header>
 
-    <script>
-        let forestData = [];
+  <div class="dashboard">
+    <div class="ds">
+      <span class="ds-l">Trees</span>
+      <span class="ds-v" id="dTrees">0</span>
+    </div>
+    <div class="ds">
+      <span class="ds-l">Done</span>
+      <span class="ds-v" id="dDone">0</span>
+    </div>
+    <div class="ds">
+      <span class="ds-l">Tasks</span>
+      <span class="ds-v" id="dTotal">0</span>
+    </div>
+    <div class="ds-prog">
+      <div class="ds-rank" id="dRank">Empty Grove</div>
+      <div class="pbar"><div class="pbar-fill" id="dFill" style="width:0%"></div></div>
+    </div>
+  </div>
 
-        // Load data on startup
-        window.onload = () => {
-            const savedData = localStorage.getItem('forestTasks');
-            if (savedData) {
-                try {
-                    forestData = JSON.parse(savedData);
-                } catch (e) {
-                    forestData = [];
-                }
-            }
-            renderForest();
-        };
+  <div id="forest"></div>
+</div>
 
-        function saveToLocalStorage() {
-            localStorage.setItem('forestTasks', JSON.stringify(forestData));
-        }
+<div id="particles"></div>
 
-        function generateId() {
-            return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
-        }
+<div class="kbd-hint">
+  <kbd class="kbd">Click</kbd> complete &nbsp;
+  <kbd class="kbd">DblClick</kbd> rename &nbsp;
+  <kbd class="kbd">Buttons</kbd> add child / delete
+</div>
 
-        function addTree() {
-            const newTree = {
-                id: generateId(),
-                text: '',
-                checked: false,
-                children: []
-            };
-            forestData.push(newTree);
-            renderForest();
-            // Focus on the newly created input
-            setTimeout(() => {
-                const inputs = document.querySelectorAll('.node-input');
-                inputs[inputs.length - 1].focus();
-            }, 50);
-        }
+<script>
+const NW = 260;
+const NH = 108;
+const HGAP = 52;
+const VGAP = 92;
+const PAD = 26;
 
-        function findAndModify(nodes, id, action) {
-            for (let i = 0; i < nodes.length; i++) {
-                if (nodes[i].id === id) {
-                    action(nodes, i);
-                    return true;
-                }
-                if (nodes[i].children && nodes[i].children.length > 0) {
-                    if (findAndModify(nodes[i].children, id, action)) return true;
-                }
-            }
-            return false;
-        }
+let forest = [];
+let history = [];
+let lastMS = -1;
+let newNodeIds = new Set();
 
-        function updateNodeText(id, text) {
-            findAndModify(forestData, id, (arr, index) => {
-                arr[index].text = text;
-            });
-            saveToLocalStorage();
-        }
+function save() {
+  localStorage.setItem('theForest_v5', JSON.stringify({ forest, lastMS }));
+}
 
-        function toggleNodeCheck(id, checked) {
-            findAndModify(forestData, id, (arr, index) => {
-                arr[index].checked = checked;
-                // Recursively check/uncheck all children ("leaf by leaf cascading")
-                const toggleAllChildren = (node, state) => {
-                    node.checked = state;
-                    node.children.forEach(child => toggleAllChildren(child, state));
-                };
-                toggleAllChildren(arr[index], checked);
-            });
-            renderForest();
-        }
+function load() {
+  try {
+    const raw = localStorage.getItem('theForest_v5');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (Array.isArray(d.forest)) forest = normalizeForest(d.forest);
+      if (typeof d.lastMS === 'number') lastMS = d.lastMS;
+      return;
+    }
+  } catch (_) {}
+  try {
+    const v4 = localStorage.getItem('theForest_v4');
+    if (v4) {
+      const d = JSON.parse(v4);
+      if (Array.isArray(d.forest)) forest = normalizeForest(d.forest);
+      if (typeof d.lastMS === 'number') lastMS = d.lastMS;
+      return;
+    }
+  } catch (_) {}
+  try {
+    const v3 = localStorage.getItem('theForest_v3');
+    if (v3) {
+      const d = JSON.parse(v3);
+      if (Array.isArray(d.forest)) forest = normalizeForest(d.forest);
+      if (typeof d.lastMS === 'number') lastMS = d.lastMS;
+      return;
+    }
+  } catch (_) {}
+  try {
+    const legacy = localStorage.getItem('forestTasks');
+    if (legacy) forest = normalizeForest(JSON.parse(legacy));
+  } catch (_) {}
+  forest = normalizeForest(forest);
+}
 
-        function addChildNode(parentId) {
-            findAndModify(forestData, parentId, (arr, index) => {
-                const childId = generateId();
-                arr[index].children.push({
-                    id: childId,
-                    text: '',
-                    checked: false,
-                    children: []
-                });
-            });
-            renderForest();
-        }
+function snapshot() {
+  history.push(JSON.stringify(forest));
+  if (history.length > 50) history.shift();
+}
 
-        function deleteNode(id) {
-            findAndModify(forestData, id, (arr, index) => {
-                arr.splice(index, 1);
-            });
-            renderForest();
-        }
+function undo() {
+  if (!history.length) return;
+  forest = JSON.parse(history.pop());
+  save();
+  renderAll();
+}
 
-        function createNodeDOM(node) {
-            const nodeEl = document.createElement('div');
-            nodeEl.className = 'tree-node';
-            nodeEl.dataset.id = node.id;
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
-            const rowEl = document.createElement('div');
-            rowEl.className = 'node-row';
+function makeNode(unlocked = false) {
+  return { id: uid(), text: '', checked: false, unlocked, children: [] };
+}
 
-            const checkboxWrapper = document.createElement('label');
-            checkboxWrapper.className = 'checkbox-wrapper';
-            
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.className = 'node-checkbox';
-            checkbox.checked = node.checked;
-            checkbox.addEventListener('change', (e) => toggleNodeCheck(node.id, e.target.checked));
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
-            checkboxWrapper.appendChild(checkbox);
+function deepFind(nodes, id) {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].id === id) return { node: nodes[i], siblings: nodes, idx: i };
+    const r = deepFind(nodes[i].children, id);
+    if (r) return r;
+  }
+  return null;
+}
 
-            const input = document.createElement('input');
-            input.type = 'text';
-            input.className = `node-input ${node.checked ? 'completed' : ''}`;
-            input.value = node.text;
-            input.placeholder = 'Write a step...';
-            input.addEventListener('input', (e) => updateNodeText(node.id, e.target.value));
+function findInForest(id) {
+  for (const tree of forest) {
+    const r = deepFind([tree], id);
+    if (r) return r;
+  }
+  return null;
+}
 
-            const toolsEl = document.createElement('div');
-            toolsEl.className = 'node-tools';
+function hasIncompleteChildren(node) {
+  return node.children.some(child => !child.checked);
+}
 
-            const addBtn = document.createElement('button');
-            addBtn.className = 'tool-btn';
-            addBtn.innerText = '+ Sub';
-            addBtn.onclick = () => addChildNode(node.id);
+function normalizeNode(node) {
+  if (!node || typeof node !== 'object') return;
+  if (typeof node.unlocked !== 'boolean') node.unlocked = true;
+  if (typeof node.checked !== 'boolean') node.checked = false;
+  if (!Array.isArray(node.children)) node.children = [];
+  node.children.forEach(normalizeNode);
+}
 
-            const delBtn = document.createElement('button');
-            delBtn.className = 'tool-btn';
-            delBtn.innerText = '✕';
-            delBtn.onclick = () => deleteNode(node.id);
+function normalizeForest(data) {
+  const forestData = Array.isArray(data) ? data : (data && Array.isArray(data.forest) ? data.forest : []);
+  forestData.forEach(normalizeNode);
+  return forestData;
+}
 
-            toolsEl.appendChild(addBtn);
-            toolsEl.appendChild(delBtn);
+function subtreeW(node) {
+  const base = NW;
+  if (!node.children.length) return base;
+  const childWidths = node.children.map(subtreeW);
+  const sum = childWidths.reduce((a, b) => a + b, 0) + (node.children.length - 1) * HGAP;
+  return Math.max(base, sum);
+}
 
-            rowEl.appendChild(checkboxWrapper);
-            rowEl.appendChild(input);
-            rowEl.appendChild(toolsEl);
-            nodeEl.appendChild(rowEl);
+function assignXY(node, cx, y) {
+  node._cx = cx;
+  node._cy = y;
+  if (!node.children.length) return;
+  const childWidths = node.children.map(subtreeW);
+  const total = childWidths.reduce((a, b) => a + b, 0) + (node.children.length - 1) * HGAP;
+  let left = cx - total / 2;
+  for (let i = 0; i < node.children.length; i++) {
+    const c = node.children[i];
+    const sw = childWidths[i];
+    assignXY(c, left + sw / 2, y + NH + VGAP);
+    left += sw + HGAP;
+  }
+}
 
-            if (node.children && node.children.length > 0) {
-                const branchesEl = document.createElement('div');
-                branchesEl.className = 'branches';
-                node.children.forEach(child => {
-                    branchesEl.appendChild(createNodeDOM(child));
-                });
-                nodeEl.appendChild(branchesEl);
-            }
+function bounds(root) {
+  let minX = Infinity, maxX = -Infinity, maxY = -Infinity;
+  (function walk(n) {
+    minX = Math.min(minX, n._cx - NW / 2);
+    maxX = Math.max(maxX, n._cx + NW / 2);
+    maxY = Math.max(maxY, n._cy + NH);
+    n.children.forEach(walk);
+  })(root);
+  return { minX, maxX, maxY };
+}
 
-            return nodeEl;
-        }
+function layoutTree(root) {
+  const sw = Math.max(subtreeW(root), NW);
+  assignXY(root, sw / 2 + PAD, PAD);
+  const { minX, maxX, maxY } = bounds(root);
+  const dx = -minX + PAD;
+  (function shift(n) {
+    n._px = n._cx + dx;
+    n._py = n._cy;
+    n.children.forEach(shift);
+  })(root);
+  return { w: maxX - minX + PAD * 2, h: maxY + PAD + 72 };
+}
 
-        function renderForest() {
-            const forestContainer = document.getElementById('forest');
-            forestContainer.innerHTML = '';
+function removeNodeById(nodes, id) {
+  for (let i = 0; i < nodes.length; i++) {
+    if (nodes[i].id === id) {
+      nodes.splice(i, 1);
+      return true;
+    }
+    if (removeNodeById(nodes[i].children, id)) return true;
+  }
+  return false;
+}
 
-            if (forestData.length === 0) {
-                forestContainer.innerHTML = '<div class="empty-state">Your forest is empty. Plant a tree to begin.</div>';
-                saveToLocalStorage();
-                return;
-            }
+function getMetrics() {
+  let total = 0, done = 0;
 
-            forestData.forEach(tree => {
-                forestContainer.appendChild(createNodeDOM(tree));
-            });
+  (function walk(n) {
+    if (n.text.trim()) {
+      total++;
+      if (n.checked) done++;
+    }
+    n.children.forEach(walk);
+  });
 
-            saveToLocalStorage();
-        }
+  forest.forEach(root => {
+    (function walk(n) {
+      if (n.text.trim()) {
+        total++;
+        if (n.checked) done++;
+      }
+      n.children.forEach(walk);
+    })(root);
+  });
 
-        // JSON handling functions
-        function exportJSON() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(forestData, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "the_forest_backup.json");
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-        }
+  return { total, done, trees: forest.length };
+}
 
-        function importJSON(event) {
-            const fileReader = new FileReader();
-            fileReader.onload = function(e) {
-                try {
-                    const importedData = JSON.parse(e.target.result);
-                    if (Array.isArray(importedData)) {
-                        forestData = importedData;
-                        renderForest();
-                    } else {
-                        alert("Invalid file structure. Make sure it's a file exported from this app.");
-                    }
-                } catch (err) {
-                    alert("Failed to parse JSON file.");
-                }
-            };
-            fileReader.readAsText(event.target.files[0]);
-            // Clear input so same file can be uploaded back-to-back if needed
-            document.getElementById('file-import').value = '';
-        }
-    </script>
+function getTreeMetrics(root) {
+  let total = 0, done = 0;
+  (function walk(n) {
+    if (n.text.trim()) {
+      total++;
+      if (n.checked) done++;
+    }
+    n.children.forEach(walk);
+  })(root);
+  return { total, done };
+}
+
+function renderAll() {
+  renderDash();
+  renderForest();
+}
+
+function renderDash() {
+  const { total, done, trees } = getMetrics();
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('dTrees').textContent = trees;
+  document.getElementById('dDone').textContent = done;
+  document.getElementById('dTotal').textContent = total;
+  document.getElementById('dFill').style.width = pct + '%';
+
+  const ranks = [
+    [100, 'Ancient Forest 🌌'],
+    [75, 'Vibrant Canopy 🍃'],
+    [50, 'Growing Thicket 🌳'],
+    [25, 'Rising Sapling 🌿'],
+    [1, 'Fresh Soil 🌱'],
+    [0, 'Empty Grove 🌑'],
+  ];
+  document.getElementById('dRank').textContent = (ranks.find(([t]) => pct >= t) || ranks[ranks.length - 1])[1];
+  checkMilestone(pct, total);
+}
+
+function renderForest() {
+  const fc = document.getElementById('forest');
+  fc.innerHTML = '';
+
+  if (!forest.length) {
+    fc.innerHTML = `
+      <div class="empty-forest">
+        <span class="ef-icon">🌱</span>
+        <div class="ef-title">Your grove is empty</div>
+        <div class="ef-hint">Click <strong>+ Plant Tree</strong> to create a root task</div>
+      </div>`;
+    return;
+  }
+
+  forest.forEach(tree => fc.appendChild(buildCard(tree)));
+}
+
+function mkButton(text, cls, title, onClick) {
+  const b = document.createElement('button');
+  b.className = `nab ${cls || ''}`.trim();
+  b.textContent = text;
+  if (title) b.title = title;
+  if (onClick) b.onclick = onClick;
+  return b;
+}
+
+function buildCard(root) {
+  const { w, h } = layoutTree(root);
+  const stats = getTreeMetrics(root);
+
+  const card = document.createElement('div');
+  card.className = 'tree-card';
+  card.dataset.treeId = root.id;
+
+  const head = document.createElement('div');
+  head.className = 'tree-head';
+  head.innerHTML = `
+    <div>
+      <div class="tree-title">${root.text ? esc(root.text) : 'Untitled tree'}</div>
+      <div class="tree-sub">${stats.done}/${stats.total} tasks complete</div>
+    </div>
+  `;
+
+  const headActions = document.createElement('div');
+  headActions.className = 'tree-head-actions';
+
+  const addRootChild = mkButton('+ Root child', 'primary', 'Add a child to the tree root', e => {
+    e.stopPropagation();
+    addChild(root.id);
+  });
+
+  const editRoot = mkButton('✎ Rename', 'edt btn-sm', 'Rename the tree root', e => {
+    e.stopPropagation();
+    openEdit(root.id);
+  });
+
+  const delTree = mkButton('✕ Remove Tree', 'del btn-sm', 'Remove this tree', e => {
+    e.stopPropagation();
+    snapshot();
+    forest = forest.filter(t => t.id !== root.id);
+    save();
+    renderAll();
+  });
+
+  headActions.append(addRootChild, editRoot, delTree);
+  head.appendChild(headActions);
+  card.appendChild(head);
+
+  const graph = document.createElement('div');
+  graph.className = 'tree-graph';
+  graph.style.width = w + 'px';
+  graph.style.height = h + 'px';
+
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'tree-svg');
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+
+  (function drawEdges(node) {
+    node.children.forEach((child, ci) => {
+      const x1 = node._px, y1 = node._py + NH;
+      const x2 = child._px, y2 = child._py;
+      const my = (y1 + y2) / 2;
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', `M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}`);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke-width', '1.6');
+      path.classList.add('edge-path');
+      path.style.animationDelay = (ci * 0.04) + 's';
+
+      if (node.checked && child.checked) {
+        path.setAttribute('stroke', 'rgba(34,197,94,.68)');
+      } else if (!child.unlocked) {
+        path.setAttribute('stroke', 'rgba(255,255,255,.06)');
+        path.setAttribute('stroke-dasharray', '5 4');
+        path.style.animation = 'none';
+      } else {
+        path.setAttribute('stroke', 'rgba(59,130,246,.28)');
+      }
+
+      svg.appendChild(path);
+      drawEdges(child);
+    });
+  })(root);
+
+  graph.appendChild(svg);
+
+  (function drawNode(node) {
+    const blocked = node.unlocked && !node.checked && hasIncompleteChildren(node);
+    const state = node.checked ? 'done' : node.unlocked ? (blocked ? 'blocked' : 'active') : 'locked';
+    const el = document.createElement('div');
+    el.className = `node ${state}`;
+    el.dataset.nid = node.id;
+    el.style.left = node._px + 'px';
+    el.style.top = node._py + 'px';
+
+    if (newNodeIds.has(node.id)) {
+      el.classList.add('spawning');
+      newNodeIds.delete(node.id);
+    }
+    if (node._justUnlocked) {
+      el.classList.add('unlocking');
+      delete node._justUnlocked;
+    }
+
+    const top = document.createElement('div');
+    top.className = 'node-top';
+
+    const icon = document.createElement('span');
+    icon.className = 'node-icon';
+    icon.textContent = node.checked ? '✓' : node.unlocked ? '◎' : '🔒';
+
+    const badge = document.createElement('span');
+    badge.className = 'node-badge';
+    badge.textContent = node.checked ? 'done' : node.unlocked ? (blocked ? 'open' : 'open') : 'locked';
+    if (blocked) badge.title = 'This task is open, but you must finish its children before marking it done.';
+
+    top.appendChild(icon);
+    top.appendChild(badge);
+
+    const lbl = document.createElement('div');
+    lbl.className = 'node-lbl';
+    if (node.text) {
+      lbl.textContent = node.text;
+    } else if (node.unlocked) {
+      lbl.textContent = 'Click to name this step';
+      lbl.dataset.empty = '1';
+    } else {
+      lbl.textContent = 'Locked';
+    }
+
+    const footer = document.createElement('div');
+    footer.className = 'node-footer';
+
+    const meta = document.createElement('div');
+    meta.className = 'node-meta';
+    meta.textContent = node.children.length
+      ? `${node.children.length} child${node.children.length > 1 ? 'ren' : ''}${blocked ? ' · finish children to close' : ''}`
+      : 'No children yet';
+
+    const acts = document.createElement('div');
+    acts.className = 'node-acts';
+
+    if (node.unlocked) {
+      if (!node.checked) {
+        acts.appendChild(mkButton('✎ Rename', 'edt', 'Rename this task', e => {
+          e.stopPropagation();
+          openEdit(node.id);
+        }));
+      }
+      acts.appendChild(mkButton('+ Child', 'add', 'Add a child task', e => {
+        e.stopPropagation();
+        addChild(node.id);
+      }));
+      acts.appendChild(mkButton('✕ Delete', 'del', 'Delete this task', e => {
+        e.stopPropagation();
+        deleteNode(node.id);
+      }));
+    }
+
+    footer.appendChild(meta);
+    footer.appendChild(acts);
+
+    el.appendChild(top);
+    el.appendChild(lbl);
+    el.appendChild(footer);
+
+    el.onclick = () => {
+      if (!node.unlocked) { shakeEl(el); return; }
+      if (!node.text.trim()) { openEdit(node.id); return; }
+      snapshot();
+      if (!node.checked) completeNode(node.id, el);
+      else uncompleteNode(node.id);
+    };
+
+    el.ondblclick = e => {
+      if (!node.unlocked) return;
+      e.stopPropagation();
+      openEdit(node.id);
+    };
+
+    graph.appendChild(el);
+    node.children.forEach(drawNode);
+  })(root);
+
+  const scroll = document.createElement('div');
+  scroll.className = 'tree-scroll';
+  scroll.appendChild(graph);
+
+  card.appendChild(scroll);
+  return card;
+}
+
+function completeNode(id, el) {
+  const found = findInForest(id);
+  if (!found || !found.node.unlocked) return;
+  const node = found.node;
+  if (hasIncompleteChildren(node)) {
+    if (el) shakeEl(el);
+    return;
+  }
+  node.checked = true;
+
+  if (el) {
+    const r = el.getBoundingClientRect();
+    burst(r.left + r.width / 2, r.top + r.height / 2, 16);
+  }
+
+  save();
+  renderAll();
+
+  setTimeout(() => {
+    const newEl = document.querySelector(`[data-nid="${id}"]`);
+    if (newEl) {
+      newEl.classList.add('done-ring');
+      setTimeout(() => newEl.classList.remove('done-ring'), 720);
+    }
+  }, 30);
+}
+
+function uncompleteNode(id) {
+  const found = findInForest(id);
+  if (!found) return;
+  found.node.checked = false;
+  save();
+  renderAll();
+}
+
+function addChild(parentId) {
+  snapshot();
+  const found = findInForest(parentId);
+  if (!found) return;
+
+  const parent = found.node;
+  const child = makeNode(true);
+  newNodeIds.add(child.id);
+  parent.children.push(child);
+
+  save();
+  renderAll();
+  setTimeout(() => openEdit(child.id), 60);
+}
+
+function deleteNode(id) {
+  snapshot();
+  if (!removeNodeById(forest, id)) return;
+  save();
+  renderAll();
+}
+
+function addTree() {
+  snapshot();
+  const root = makeNode(true);
+  newNodeIds.add(root.id);
+  forest.push(root);
+  save();
+  renderAll();
+  setTimeout(() => openEdit(root.id), 80);
+}
+
+function openEdit(nodeId) {
+  const found = findInForest(nodeId);
+  if (!found) return;
+  const node = found.node;
+
+  const ov = document.createElement('div');
+  ov.className = 'overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <h3>✏️ Name this task</h3>
+    <input class="modal-inp" type="text" maxlength="90" placeholder="Use a full 10–15 word task if needed" value="${esc(node.text)}">
+    <div class="modal-hint">Press Enter to save · Escape to cancel</div>
+    <div class="modal-acts">
+      <button class="btn btn-sm cancel-btn">Cancel</button>
+      <button class="btn btn-sm btn-g save-btn">Save ↵</button>
+    </div>
+  `;
+
+  ov.appendChild(modal);
+  document.body.appendChild(ov);
+
+  const inp = modal.querySelector('.modal-inp');
+  inp.focus();
+  inp.select();
+
+  const commit = () => {
+    const v = inp.value.trim();
+    if (v) {
+      snapshot();
+      node.text = v;
+      save();
+      renderAll();
+    }
+    ov.remove();
+  };
+
+  modal.querySelector('.save-btn').onclick = commit;
+  modal.querySelector('.cancel-btn').onclick = () => ov.remove();
+  inp.onkeydown = e => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') ov.remove();
+  };
+  ov.onclick = e => { if (e.target === ov) ov.remove(); };
+}
+
+function burst(cx, cy, count = 12) {
+  const pc = document.getElementById('particles');
+  const sym = ['🍃','✨','💚','🌿','⭐','🌟','💫','🟢'];
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('span');
+    el.className = 'particle';
+    el.textContent = sym[Math.floor(Math.random() * sym.length)];
+    el.style.cssText = `left:${cx}px;top:${cy}px;font-size:${10 + Math.random() * 14}px`;
+    const ang = Math.random() * Math.PI * 2;
+    const dist = 55 + Math.random() * 110;
+    el.style.setProperty('--dx', Math.cos(ang) * dist + 'px');
+    el.style.setProperty('--dy', Math.sin(ang) * dist - 50 + 'px');
+    el.style.setProperty('--dr', (Math.random() * 380 - 190) + 'deg');
+    el.style.setProperty('--dur', (.45 + Math.random() * .65) + 's');
+    pc.appendChild(el);
+    setTimeout(() => el.remove(), 1300);
+  }
+}
+
+function shakeEl(el) {
+  el.style.animation = 'none';
+  el.offsetHeight;
+  el.style.animation = 'shake .4s ease-out';
+  setTimeout(() => el.style.animation = '', 450);
+}
+
+function checkMilestone(pct, total) {
+  if (total === 0) return;
+  for (const step of [25, 50, 75, 100]) {
+    if (pct >= step && lastMS < step) {
+      lastMS = step;
+      save();
+      showMilestone(step);
+      return;
+    }
+  }
+}
+
+function showMilestone(pct) {
+  const data = {
+    25:  { e:'🌱', t:'Quarter Grown!',   s:'Your saplings are taking hold.' },
+    50:  { e:'🌳', t:'Halfway There!',   s:'The forest is thriving.' },
+    75:  { e:'🍃', t:'Almost Complete!', s:'The canopy is nearly full.' },
+    100: { e:'🌌', t:'Forest Complete!', s:'An ancient woodland has awakened!' },
+  };
+  const d = data[pct];
+
+  const ov = document.createElement('div');
+  ov.className = 'milestone-ov';
+  ov.innerHTML = `
+    <div class="milestone-box">
+      <span class="ms-emoji">${d.e}</span>
+      <div class="ms-title">${d.t}</div>
+      <div class="ms-sub">${d.s}</div>
+      <div class="ms-hint">Click anywhere to continue</div>
+    </div>
+  `;
+  document.body.appendChild(ov);
+
+  let shots = 0;
+  const confettiId = setInterval(() => {
+    burst(Math.random() * window.innerWidth, Math.random() * window.innerHeight * .6, 8);
+    if (++shots >= 8) clearInterval(confettiId);
+  }, 170);
+
+  ov.onclick = () => { ov.remove(); clearInterval(confettiId); };
+  setTimeout(() => ov.remove(), 6000);
+}
+
+function initBg() {
+  const canvas = document.getElementById('bgCanvas');
+  const ctx = canvas.getContext('2d');
+  let W = 0, H = 0;
+
+  const resize = () => {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  };
+  resize();
+  window.addEventListener('resize', resize);
+
+  const stars = Array.from({ length: 100 }, () => ({
+    x: Math.random(), y: Math.random(),
+    r: .4 + Math.random() * 1.4,
+    a: .15 + Math.random() * .45,
+    tw: Math.random() * Math.PI * 2,
+    ts: .004 + Math.random() * .01,
+  }));
+
+  const leaves = Array.from({ length: 22 }, () => ({
+    x: Math.random(),
+    y: Math.random(),
+    vy: .0002 + Math.random() * .0006,
+    vx: (Math.random() - .5) * .00015,
+    rot: Math.random() * Math.PI * 2,
+    vr: (Math.random() - .5) * .012,
+    sz: 4 + Math.random() * 9,
+    al: .05 + Math.random() * .1,
+    col: ['#22c55e', '#16a34a', '#15803d', '#166534'][Math.floor(Math.random() * 4)],
+  }));
+
+  const blobs = Array.from({ length: 3 }, (_, i) => ({
+    x: .2 + i * .3,
+    y: .2 + Math.random() * .4,
+    r: 180 + Math.random() * 120,
+    t: Math.random() * Math.PI * 2,
+    ts: .003 + Math.random() * .004,
+    hue: [160, 220, 140][i],
+  }));
+
+  function frame() {
+    ctx.clearRect(0, 0, W, H);
+
+    for (const b of blobs) {
+      b.t += b.ts;
+      const x = (b.x + Math.sin(b.t * .7) * .08) * W;
+      const y = (b.y + Math.cos(b.t * .5) * .06) * H;
+      const g = ctx.createRadialGradient(x, y, 0, x, y, b.r);
+      g.addColorStop(0, `hsla(${b.hue},80%,40%,.07)`);
+      g.addColorStop(1, `hsla(${b.hue},80%,40%,0)`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    for (const s of stars) {
+      s.tw += s.ts;
+      const a = s.a * (.55 + .45 * Math.sin(s.tw));
+      ctx.beginPath();
+      ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${a})`;
+      ctx.fill();
+    }
+
+    for (const l of leaves) {
+      l.y += l.vy;
+      l.x += l.vx + Math.sin(l.rot * 2) * .00008;
+      l.rot += l.vr;
+      if (l.y > 1.06) { l.y = -.06; l.x = Math.random(); }
+      ctx.save();
+      ctx.translate(l.x * W, l.y * H);
+      ctx.rotate(l.rot);
+      ctx.globalAlpha = l.al;
+      ctx.fillStyle = l.col;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, l.sz, l.sz * .5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    requestAnimationFrame(frame);
+  }
+  frame();
+}
+
+function exportData() {
+  const a = document.createElement('a');
+  a.href = 'data:text/json,' + encodeURIComponent(JSON.stringify(forest, null, 2));
+  a.download = 'forest_backup.json';
+  a.click();
+}
+
+function importData(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      const imported = normalizeForest(d);
+      if (!Array.isArray(imported)) throw new Error('Expected array');
+      snapshot();
+      forest = imported;
+      save();
+      renderAll();
+    } catch (_) {
+      alert('Invalid JSON file');
+    }
+  };
+  r.readAsText(file);
+  e.target.value = '';
+}
+
+let lastSparkle = 0;
+document.addEventListener('mousemove', e => {
+  const now = Date.now();
+  if (now - lastSparkle < 120) return;
+  lastSparkle = now;
+  const moving = e.movementX ** 2 + e.movementY ** 2 > 80;
+  if (!moving || Math.random() > .3) return;
+  const dot = document.createElement('span');
+  dot.style.cssText = `
+    position:fixed;left:${e.clientX}px;top:${e.clientY}px;
+    width:3px;height:3px;background:rgba(34,197,94,.6);
+    border-radius:50%;pointer-events:none;z-index:999;
+    animation:pfly .5s ease-out forwards;
+    --dx:${(Math.random()-0.5)*20}px;
+    --dy:${(Math.random()-0.5)*20}px;
+    --dr:0deg;--dur:.5s;
+  `;
+  document.body.appendChild(dot);
+  setTimeout(() => dot.remove(), 550);
+});
+
+window.onload = () => {
+  initBg();
+  load();
+  renderAll();
+
+  document.getElementById('btnAdd').onclick = addTree;
+  document.getElementById('btnUndo').onclick = undo;
+  document.getElementById('btnExport').onclick = exportData;
+  document.getElementById('fileImp').onchange = importData;
+
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      undo();
+    }
+  });
+};
+</script>
 </body>
 </html>
